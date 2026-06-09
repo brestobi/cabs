@@ -16,6 +16,11 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
   walletBalance: (json['walletBalance'] as num?)?.toDouble() ?? 0.0,
   isVerified: json['isVerified'] as bool? ?? false,
+  isOnline: json['isOnline'] as bool? ?? false,
+  licenseNumber: json['licenseNumber'] as String?,
+  licensePhotoUrl: json['licensePhotoUrl'] as String?,
+  selfiePhotoUrl: json['selfiePhotoUrl'] as String?,
+  totalEarnings: (json['totalEarnings'] as num?)?.toDouble() ?? 0.0,
   createdAt: DateTime.parse(json['createdAt'] as String),
 );
 
@@ -29,5 +34,10 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'rating': instance.rating,
   'walletBalance': instance.walletBalance,
   'isVerified': instance.isVerified,
+  'isOnline': instance.isOnline,
+  'licenseNumber': instance.licenseNumber,
+  'licensePhotoUrl': instance.licensePhotoUrl,
+  'selfiePhotoUrl': instance.selfiePhotoUrl,
+  'totalEarnings': instance.totalEarnings,
   'createdAt': instance.createdAt.toIso8601String(),
 };

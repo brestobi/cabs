@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../constants/app_constants.dart';
+import '../../app/constants/app_constants.dart';
 
 class FareService {
   final Dio _dio = Dio();

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../constants/app_constants.dart';
+import '../../app/constants/app_constants.dart';
 
 class PlaceService {
   final Dio _dio = Dio();

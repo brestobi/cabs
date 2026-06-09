@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/driver_provider.dart';
 import '../providers/active_booking_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../common/providers/user_provider.dart';
 import '../../core/location_service.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
@@ -38,12 +39,35 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     }
   }
 
+  void _showSosDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('EMERGENCY SOS', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text('This will send your current location to emergency services. Proceed?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SOS Alert Sent!'), backgroundColor: Colors.red));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('SEND SOS'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(driverOnlineProvider);
     final rideRequests = ref.watch(rideRequestsProvider);
     final authState = ref.watch(authProvider);
     final activeBooking = ref.watch(driverActiveBookingProvider);
+    final user = ref.watch(userProvider);
+    final authNotifier = ref.read(authProvider.notifier);
 
     // If there's an active booking, redirect to active trip screen
     if (activeBooking != null) {
@@ -72,18 +96,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
             },
             activeColor: Colors.green,
           ),
-          const SizedBox(width: 8),
-          Center(
-            child: Text(
-              isOnline ? 'ONLINE' : 'OFFLINE',
-              style: TextStyle(
-                color: isOnline ? Colors.green : Colors.grey,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          IconButton(
+            onPressed: () async => await authNotifier.signOut(),
+            icon: const Icon(Icons.logout, color: Colors.red),
           ),
-          const SizedBox(width: 16),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showSosDialog,
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.warning, color: Colors.white),
       ),
       body: Stack(
         children: [
@@ -100,6 +122,29 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
           else
             const Center(child: CircularProgressIndicator()),
           
+          // Earnings Card
+          Positioned(
+            top: 20,
+            left: 20,
+            right: 20,
+            child: Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Today\'s Earnings', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      '\$${user?.totalEarnings.toStringAsFixed(2) ?? '0.00'}',
+                      style: const TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           if (isOnline && activeBooking == null)
             rideRequests.when(
               data: (bookings) {

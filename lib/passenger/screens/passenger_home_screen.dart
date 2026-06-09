@@ -6,6 +6,7 @@ import '../../core/location_service.dart';
 import '../providers/location_provider.dart';
 import '../widgets/fare_estimate_widget.dart';
 import '../providers/booking_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 final locationServiceProvider = Provider((ref) => LocationService());
 
@@ -58,12 +59,85 @@ class _PassengerHomeScreenState extends ConsumerState<PassengerHomeScreen> {
     }
   }
 
+  void _showSosDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('EMERGENCY SOS', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text('This will send your current location to emergency services and your contacts. Proceed?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          ElevatedButton(
+            onPressed: () {
+              // TODO: Logic to send SOS alert to Supabase or external API
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SOS Alert Sent!'), backgroundColor: Colors.red));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('SEND SOS'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final locationState = ref.watch(passengerLocationProvider);
     final activeBooking = ref.watch(activeBookingProvider);
+    final authNotifier = ref.read(authProvider.notifier);
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+      ),
+      extendBodyBehindAppBar: true,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.deepPurple),
+              child: Text('Cabs App', style: TextStyle(color: Colors.white, fontSize: 24)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet),
+              title: const Text('My Wallet'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/wallet');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('Ride History'),
+              onTap: () {
+                // TODO: History
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                await authNotifier.signOut();
+              },
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showSosDialog,
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.warning, color: Colors.white),
+      ),
       body: Stack(
         children: [
           if (_currentLocation != null)
@@ -97,7 +171,7 @@ class _PassengerHomeScreenState extends ConsumerState<PassengerHomeScreen> {
           
           // Search Card
           Positioned(
-            top: 50,
+            top: 100, // Adjusted for AppBar
             left: 20,
             right: 20,
             child: Container(

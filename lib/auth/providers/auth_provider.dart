@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/supabase_client.dart';
+import '../../core/notification_service.dart';
 
 enum AuthStatus { initial, authenticated, unauthenticated, loading }
 
@@ -41,6 +42,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final session = _supabase.auth.currentSession;
     if (session != null) {
       state = state.copyWith(status: AuthStatus.authenticated, user: session.user);
+      NotificationService.setExternalUserId(session.user.id);
     } else {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }
@@ -51,8 +53,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (event == AuthChangeEvent.signedIn || event == AuthChangeEvent.tokenRefreshed) {
         state = state.copyWith(status: AuthStatus.authenticated, user: session?.user);
+        if (session != null) {
+          NotificationService.setExternalUserId(session.user.id);
+        }
       } else if (event == AuthChangeEvent.signedOut) {
         state = state.copyWith(status: AuthStatus.unauthenticated, user: null);
+        NotificationService.removeExternalUserId();
       }
     });
   }

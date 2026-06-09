@@ -7,8 +7,10 @@ import '../../auth/screens/otp_screen.dart';
 import '../../auth/screens/role_selection_screen.dart';
 import '../../passenger/screens/passenger_home_screen.dart';
 import '../../passenger/screens/location_search_screen.dart';
+import '../../passenger/screens/wallet_screen.dart';
 import '../../driver/screens/driver_home_screen.dart';
 import '../../driver/screens/active_trip_screen.dart';
+import '../../driver/screens/driver_verification_screen.dart';
 import '../../common/widgets/chat_screen.dart';
 import '../../common/providers/user_provider.dart';
 
@@ -31,7 +33,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           
           if (authState.status == AuthStatus.authenticated) {
             if (user == null) {
-              // Waiting for user profile to load
               return null;
             }
             
@@ -44,6 +45,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
             
             if (user.role == 'driver') {
+              if (!user.isVerified) {
+                return '/driver-verification';
+              }
               return '/driver-home';
             }
           }
@@ -75,6 +79,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           final isPickup = state.uri.queryParameters['isPickup'] == 'true';
           return LocationSearchScreen(isPickup: isPickup);
         },
+      ),
+      GoRoute(
+        path: '/wallet',
+        builder: (context, state) => const WalletScreen(),
+      ),
+      GoRoute(
+        path: '/driver-verification',
+        builder: (context, state) => const DriverVerificationScreen(),
       ),
       GoRoute(
         path: '/driver-home',

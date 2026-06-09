@@ -34,4 +34,20 @@ class UserNotifier extends StateNotifier<UserModel?> {
       state = await _userService.getUserProfile(state!.id);
     }
   }
+
+  Future<void> updateDriverVerification({
+    required String licenseNumber,
+    required String licensePhotoUrl,
+    required String selfiePhotoUrl,
+  }) async {
+    if (state != null) {
+      final updatedUser = state!.copyWith(
+        licenseNumber: licenseNumber,
+        licensePhotoUrl: licensePhotoUrl,
+        selfiePhotoUrl: selfiePhotoUrl,
+      );
+      await _userService.createUserProfile(updatedUser);
+      state = updatedUser;
+    }
+  }
 }

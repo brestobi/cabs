@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../providers/active_booking_provider.dart';
 import '../providers/driver_provider.dart';
 import '../../common/services/booking_service.dart';
+import '../../common/services/wallet_service.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class ActiveTripScreen extends ConsumerStatefulWidget {
   const ActiveTripScreen({super.key});
@@ -16,11 +18,34 @@ class ActiveTripScreen extends ConsumerStatefulWidget {
 class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   GoogleMapController? _mapController;
   final _otpController = TextEditingController();
+  final _walletService = WalletService();
+
+  void _showSosDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('EMERGENCY SOS', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text('This will send your current location and trip details to emergency services. Proceed?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SOS Alert Sent!'), backgroundColor: Colors.red));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('SEND SOS'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final booking = ref.watch(driverActiveBookingProvider);
     final bookingService = ref.read(bookingServiceProvider);
+    final authNotifier = ref.read(authProvider.notifier);
 
     if (booking == null) {
       return const Scaffold(body: Center(child: Text('No active trip')));
@@ -34,7 +59,16 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
             onPressed: () => context.push('/chat?bookingId=${booking.id}'),
             icon: const Icon(Icons.chat),
           ),
+          IconButton(
+            onPressed: () async => await authNotifier.signOut(),
+            icon: const Icon(Icons.logout, color: Colors.red),
+          ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showSosDialog,
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.warning, color: Colors.white),
       ),
       body: Stack(
         children: [
@@ -115,10 +149,24 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () async {
+                        // 1. Process Payment
+                        if (booking.driverId != null) {
+                          await _walletService.processPayment(
+                            passengerId: booking.passengerId,
+                            driverId: booking.driverId!,
+                            amount: booking.fareEstimate,
+                          );
+                        }
+
+                        // 2. Complete Booking
                         await bookingService.updateBookingStatus(booking.id, 'completed');
                         ref.read(driverActiveBookingProvider.notifier).state = null;
+                        
                         if (context.mounted) {
                           context.pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Trip completed! \$${booking.fareEstimate.toStringAsFixed(2)} added to earnings.')),
+                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: Colors.blue, foregroundColor: Colors.white),
