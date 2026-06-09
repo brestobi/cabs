@@ -1,0 +1,414 @@
+# 🚀 Super Prompt for Flutter Android App Building
+
+Here's a **comprehensive, production-grade prompt** you can feed into any AI coding assistant (Cursor, Copilot, Claude, GPT-4, etc.) to generate a Flutter Android app for your Cabs platform.
+
+---
+
+## 📋 Copy This Entire Prompt
+
+```
+You are an expert Flutter developer building a production-ready Android cab booking app (passenger + driver modes). Follow these specifications exactly.
+
+## TECH STACK
+- Flutter (latest stable) with Dart
+- Supabase for backend (auth, database, storage, realtime)
+- Google Maps Flutter for maps & tracking
+- Riverpod for state management  
+- GoRouter for navigation
+- Dio for HTTP (if needed)
+- OneSignal for push notifications
+
+## PROJECT STRUCTURE
+Create this exact folder structure:
+```
+lib/
+├── main.dart
+├── app/
+│   ├── providers/          # Riverpod providers
+│   ├── routers/            # GoRouter configuration
+│   ├── themes/             # Light/dark themes
+│   └── constants/          # App constants, API keys
+├── auth/
+│   ├── screens/            # Login, register, OTP
+│   ├── widgets/            # Auth form widgets
+│   └── providers/          # Auth state providers
+├── passenger/
+│   ├── screens/            # Booking, tracking, history, wallet
+│   ├── widgets/            # Ride cards, fare estimator
+│   └── providers/          # Passenger-specific state
+├── driver/
+│   ├── screens/            # Request accept, navigation, earnings
+│   ├── widgets/            # Driver status toggle, ride requests
+│   └── providers/          # Driver-specific state
+├── common/
+│   ├── widgets/            # Reusable buttons, dialogs, loaders
+│   ├── models/             # User, Booking, Vehicle data models
+│   ├── services/           # Supabase service, location service
+│   └── utils/              # Helpers, validators, formatters
+└── core/
+    ├── supabase_client.dart    # Supabase initialization
+    ├── notification_service.dart # OneSignal setup
+    └── location_service.dart    # Background location tracking
+```
+
+## DATABASE MODELS (Create Dart classes with JSON serialization)
+
+### User Model
+- id (String, UUID)
+- role (String: 'passenger' or 'driver')
+- phone (String, unique)
+- email (String, optional)
+- fullName (String)
+- avatarUrl (String, optional)
+- rating (double, default 0.0)
+- walletBalance (double, default 0.0)
+- isVerified (bool, default false)
+- createdAt (DateTime)
+
+### Booking Model  
+- id (String, UUID)
+- passengerId (String)
+- driverId (String, optional)
+- pickupLocation (LatLng)
+- dropoffLocation (LatLng)
+- pickupAddress (String)
+- dropoffAddress (String)
+- status (String: 'pending', 'accepted', 'arrived', 'started', 'completed', 'cancelled')
+- fareEstimate (double)
+- finalFare (double, optional)
+- paymentMethod (String: 'cash', 'card', 'wallet')
+- pickupVerificationCode (String, 4-digit)
+- createdAt (DateTime)
+- startedAt (DateTime, optional)
+- completedAt (DateTime, optional)
+
+### Driver Model (extends User)
+- licenseNumber (String)
+- licensePhotoUrl (String)
+- selfiePhotoUrl (String)
+- isApproved (bool)
+- isOnline (bool)
+- currentLocation (LatLng, optional)
+- totalEarnings (double)
+
+## REQUIRED PACKAGES (pubspec.yaml)
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.0.0
+  riverpod: ^2.4.0
+  flutter_riverpod: ^2.4.0
+  go_router: ^13.0.0
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
+  geocoding: ^2.1.0
+  image_picker: ^1.0.5
+  file_picker: ^6.1.1
+  onesignal_flutter: ^5.0.0
+  dio: ^5.3.0
+  equatable: ^2.0.5
+  json_annotation: ^4.8.1
+  intl: ^0.18.1
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.0
+  flutter_rating_bar: ^4.0.1
+  permission_handler: ^11.0.0
+  background_locator: ^2.0.0  # For driver background tracking
+  
+dev_dependencies:
+  build_runner: ^2.4.0
+  json_serializable: ^6.7.0
+```
+
+## FEATURE IMPLEMENTATION ORDER
+
+### PHASE 1: Core Setup & Authentication
+1. **Supabase Configuration**
+   - Initialize Supabase in main.dart with your project URL and anon key
+   - Set up auth state listener
+   - Implement Row Level Security compatible queries
+
+2. **Authentication Flow**
+   - Phone number login with OTP (Supabase Auth)
+   - Email fallback option
+   - Role selection screen after first login (passenger/driver)
+   - Profile creation with name and optional photo
+   - Persistent login state using Riverpod
+
+3. **Role Detection & Routing**
+   - Check user role from Supabase profiles table
+   - Redirect to appropriate dashboard (passenger or driver)
+   - Prevent role switching without re-authentication
+
+### PHASE 2: Passenger Features
+4. **Ride Booking Flow**
+   - Google Maps with current location
+   - Search pickup location (autocomplete from Google Places API)
+   - Search dropoff location
+   - Show fare estimate based on distance calculation
+   - Vehicle type selection (standard, premium, large)
+   - Confirm booking button creates record in Supabase
+
+5. **Real-time Tracking**
+   - After booking accepted, show live driver location
+   - Subscribe to Supabase Realtime for driver location updates
+   - Show ETA using Google Maps Distance Matrix API
+   - Display driver info (name, rating, vehicle, plate number)
+   - Cancel trip button (within first 2 minutes only)
+
+6. **Payment & Wallet**
+   - Display wallet balance from Supabase
+   - Add money to wallet (simulate or integrate Stripe)
+   - Select payment method (cash/card/wallet)
+   - Show payment confirmation screen after trip
+   - Transaction history
+
+7. **Ride History & Ratings**
+   - List past trips with details
+   - Rate driver (1-5 stars with optional comment)
+   - View past receipts
+   - Re-book option for frequent routes
+
+8. **Additional Passenger Features**
+   - Saved locations (home, work, favorites)
+   - Promo code input & validation
+   - SOS button (sends alert to emergency contacts + driver)
+   - Trip sharing via WhatsApp (deep link with real-time location)
+   - Pickup verification code (4-digit PIN shown to passenger)
+   - In-app support chat (using Supabase Realtime)
+   - Lost & found report form
+
+### PHASE 3: Driver Features
+9. **Driver Registration & Verification**
+   - Multi-step form (license, vehicle registration, selfie)
+   - Upload documents to Supabase Storage
+   - Verification pending screen
+   - Admin approval required before going online
+
+10. **Online/Offline Mode**
+    - Toggle switch to appear online
+    - When online, send current location to Supabase every 3 seconds
+    - When offline, stop location updates
+    - Auto-offline after 15 minutes of no ride requests
+
+11. **Ride Request Handling**
+    - Real-time ride request listener (Supabase Realtime)
+    - Card pops up with passenger info, pickup/dropoff, fare estimate
+    - Accept/Reject buttons
+    - 30-second timeout auto-reject
+    - Prevent multiple active rides
+
+12. **Active Trip Management**
+    - Navigation to pickup location (open Google Maps or use built-in)
+    - "Arrived at Pickup" button
+    - Enter passenger verification code (matches passenger's PIN)
+    - "Start Trip" button after code verified
+    - Navigation to dropoff
+    - "Complete Trip" button at destination
+    - Show final fare (with optional adjustments for waiting time)
+
+13. **Earnings Dashboard**
+    - Today's earnings
+    - Weekly total
+    - Trip history with breakdown
+    - Withdrawal button (to Stripe Connect)
+    - Earnings chart (last 7 days)
+
+### PHASE 4: Cross-Cutting Features
+14. **Real-time Chat**
+    - In-app messaging between passenger and driver during active trip
+    - Supabase Realtime for instant messages
+    - Read receipts
+    - Typing indicator
+
+15. **Notifications**
+    - OneSignal setup with FCM fallback
+    - Push notifications for:
+      - Ride accepted/rejected
+      - Driver arrived
+      - Trip started/completed
+      - Payment receipt
+      - Promo code offers
+
+16. **Background Location (Driver Only)**
+    - Use background_locator package
+    - Continue sending location when app is in background
+    - Battery optimization handling
+    - Permission management
+
+## STATE MANAGEMENT WITH RIVERPROD
+
+Create these providers:
+
+```dart
+// auth_provider.dart
+final authStateProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+
+// location_provider.dart  
+final currentLocationProvider = StateProvider<LatLng?>((ref) => null);
+final driverLocationStreamProvider = StreamProvider.returnsArg<LatLng?, String>((ref, bookingId) {
+  // Subscribe to driver location for specific booking
+});
+
+// booking_provider.dart
+final activeBookingProvider = StateProvider<Booking?>((ref) => null);
+final bookingListProvider = FutureProvider<List<Booking>>((ref) async {
+  // Fetch user's bookings from Supabase
+});
+
+// ride_request_provider.dart (driver side)
+final rideRequestsStreamProvider = StreamProvider<List<Booking>>((ref) {
+  // Real-time subscription to pending requests in driver's area
+});
+```
+
+## MAP & LOCATION REQUIREMENTS
+
+1. **Request permissions** (fine/coarse location, background location for drivers)
+2. **Handle location permission denials** with user-friendly prompts
+3. **Calculate distance** using Haversine formula or Google Maps API
+4. **Animate map camera** to follow driver during active trip
+5. **Show driver marker** with rotation based on heading
+6. **Draw polyline** from pickup to dropoff on map
+7. **Cluster nearby drivers** on passenger map (reduce marker clutter)
+
+## UI/UX REQUIREMENTS
+
+1. **Material Design 3** with custom color scheme
+2. **Bottom navigation bar** for main sections (Home, History, Wallet, Profile)
+3. **Floating action button** for SOS (red, always visible)
+4. **Responsive layouts** for different screen sizes
+5. **Loading states** (shimmer effects, progress indicators)
+6. **Error handling** with user-friendly messages and retry buttons
+7. **Offline support** - cache recent data using Hive
+8. **Dark mode support** following system theme
+
+## SECURITY REQUIREMENTS
+
+1. **Never store API keys in code** - use --dart-define or .env files
+2. **Validate all inputs** (phone format, email, addresses)
+3. **Implement Supabase Row Level Security** (RLS policies on all tables)
+4. **Use prepared statements** (Supabase handles this automatically)
+5. **Rate limiting on booking requests** (prevent spam)
+6. **Verify verification code** before starting trip
+
+## PERFORMANCE REQUIREMENTS
+
+1. **Lazy load images** (cached_network_image)
+2. **Debounce search inputs** for location autocomplete
+3. **Paginate ride history** (load 20 items at a time)
+4. **Optimize rebuilds** using Riverpod's select()
+5. **Dispose controllers** in StatefulWidget dispose()
+6. **Use const constructors** wherever possible
+
+## ERROR HANDLING PATTERNS
+
+```dart
+// Use this pattern for all async operations
+try {
+  final result = await someAsyncOperation();
+  return Result.success(result);
+} on SupabaseException catch (e) {
+  return Result.error('Network error: ${e.message}');
+} on FormatException catch (e) {
+  return Result.error('Data format error');
+} catch (e) {
+  return Result.error('Unexpected error: $e');
+}
+```
+
+## TESTING REQUIREMENTS
+
+1. **Unit tests** for all utility functions
+2. **Widget tests** for critical screens (login, booking, tracking)
+3. **Integration test** for complete booking flow
+4. **Mock Supabase** responses in tests
+
+## BUILD CONFIGURATION
+
+**Android specific (build.gradle):**
+```gradle
+minSdkVersion 23  // Required for background location
+targetSdkVersion 34
+compileSdkVersion 34
+multiDexEnabled true
+
+// Add in AndroidManifest.xml
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+<meta-data android:name="com.google.android.geo.API_KEY" android:value="${GOOGLE_MAPS_API_KEY}"/>
+```
+
+## ENVIRONMENT VARIABLES (--dart-define)
+- SUPABASE_URL=your_supabase_url
+- SUPABASE_ANON_KEY=your_anon_key  
+- GOOGLE_MAPS_API_KEY=your_maps_key
+- ONESIGNAL_APP_ID=your_onesignal_id
+
+## DELIVERABLES EXPECTED
+1. Complete Flutter codebase with all files organized as specified
+2. Working Android build (signed APK/AAB)
+3. README with setup instructions and environment variables
+4. Example .env file template
+5. Supabase migration SQL script (RLS policies, tables, indexes)
+
+## CONSTRAINTS
+- Do NOT use Firebase (we're using Supabase exclusively)
+- Do NOT use third-party ride-hailing SDKs (build from scratch)
+- Must support offline mode for ride history viewing
+- Must handle app termination and background states for drivers
+- Must comply with Google Play Store policies for background location
+
+Generate complete, production-ready code following all specifications above. Start with pubspec.yaml and work through each phase in order.
+```
+
+---
+
+## 🎯 How to Use This Super Prompt
+
+### Option 1: VS Code with Copilot
+1. Create a new Flutter project
+2. Open  VS Code
+3. Paste this entire prompt as a comment at the top of `main.dart`
+4. Start typing `// Phase 1: Supabase configuration` and let AI generate
+
+### Option 2: ChatGPT/Claude
+1. Paste the entire prompt
+2. Ask: "Generate the complete code for Phase 1 (Core Setup & Authentication)"
+3. Iterate through each phase
+
+### Option 3: GitHub Copilot Workspace
+1. Create new workspace
+2. Paste prompt in README.md
+3. Use Copilot to generate files one by one
+
+---
+
+## 📦 Expected Output Quality
+
+With this prompt, you'll get:
+- **Production-ready code** (error handling, loading states, null safety)
+- **Proper architecture** (separation of concerns, providers, services)
+- **Working Supabase integration** (auth, realtime, storage)
+- **Professional UI** (Material Design 3, responsive)
+- **Complete features** (both passenger and driver modes)
+
+---
+
+## ⚡ Quick Start Command
+
+After getting the code, run:
+```bash
+flutter clean
+flutter pub get
+flutter run --dart-define=SUPABASE_URL=your_url --dart-define=SUPABASE_ANON_KEY=your_key
+```
+
+Want me to **generate a specific phase** from this super prompt (like Phase 1: Authentication), or create a **simplified version** for MVP?
